@@ -1,53 +1,25 @@
-from aiogram import Bot, Dispatcher, F
-from aiogram.types import Message
-from aiogram.filters import Command
-
-from aiogram.utils.keyboard import ReplyKeyboardBuilder
+from aiogram import Bot, Dispatcher
 
 import asyncio
 import os
 
+import misc
+
+from handlers import main_router
 
 bot = Bot(token=os.getenv('BOT_TOKEN'))
 dp = Dispatcher()
 
 
-@dp.message(Command('start'))
-async def com_start(message: Message):
-    keyboard = ReplyKeyboardBuilder()
-    keyboard.button(
-        text='/start',
-    )
-    keyboard.button(
-        text='Java',
-    )
-    keyboard.button(
-        text='PHONE',
-        request_contact=True,
-    )
-    await message.answer(
-        text=f'Приветствую тебя, {message.from_user.full_name}!\nЯ готов к работе!\nТы прислал: {message.text}',
-        reply_markup=keyboard.as_markup(),
-    )
-
-
-@dp.message(F.text.lower() == 'java')
-async def com_help(message: Message):
-    await message.answer(
-        text='JavaRush is the BEST!',
-    )
-
-
-@dp.message(F.text == 'STONE')
-async def com_help(message: Message):
-    await message.answer(
-        text='STONE! STONE!',
-    )
-
-
 async def start_bot():
+    dp.startup.register(misc.on_start)
+    dp.shutdown.register(misc.on_shutdown)
+    dp.include_router(main_router)
     await dp.start_polling(bot)
 
 
 if __name__ == '__main__':
-    asyncio.run(start_bot())
+    try:
+        asyncio.run(start_bot())
+    except KeyboardInterrupt:
+        pass
