@@ -1,9 +1,10 @@
 from .keyboards import kb_reply, kb_end_talk
-from .inline_keyboards import ikb_celebrity, ikb_quiz
+from .inline_keyboards import ikb_celebrity, ikb_quiz_select_topic, ikb_quiz_next
 
 __all__ = [
     'kb_reply',
     'kb_end_talk',
     'ikb_celebrity',
-    'ikb_quiz',
+    'ikb_quiz_select_topic',
+    'ikb_quiz_next',
 ]

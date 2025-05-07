@@ -29,7 +29,7 @@ def ikb_celebrity():
     return keyboard.as_markup()
 
 
-def ikb_quiz():
+def ikb_quiz_select_topic():
     keyboard = InlineKeyboardBuilder()
     buttons = [
         Button('Язык Python', 'quiz_prog'),
@@ -48,4 +48,25 @@ def ikb_quiz():
 
         )
     keyboard.adjust(1)
+    return keyboard.as_markup()
+
+
+def ikb_quiz_next(current_topic: QuizData):
+    keyboard = InlineKeyboardBuilder()
+    buttons = [
+        Button('Дальше', 'next_question'),
+        Button('Сменить тему', 'change_topic'),
+        Button('Закончить', 'finish_quiz'),
+
+    ]
+    for button in buttons:
+        keyboard.button(
+            text=button.button_text,
+            callback_data=QuizData(
+                button=button.button_callback,
+                topic=current_topic.topic,
+                topic_name=current_topic.topic_name
+            )
+        )
+    keyboard.adjust(2, 1)
     return keyboard.as_markup()

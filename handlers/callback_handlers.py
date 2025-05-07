@@ -4,9 +4,9 @@ from aiogram.fsm.context import FSMContext
 import os
 
 from classes import gpt_client
-from classes.chat_gpt import BotPhoto, BotPath, GPTMessage
+from classes.chat_gpt import BotPhoto, BotPath, GPTMessage, GPTRole
 from keyboards.callback_data import CelebrityData, QuizData
-from .handlers_state import CelebrityTalk
+from .handlers_state import CelebrityTalk, Quiz
 
 callback_router = Router()
 
@@ -32,29 +32,34 @@ async def celebrity_callbacks(callback: CallbackQuery, callback_data: CelebrityD
 
 @callback_router.callback_query(QuizData.filter(F.button == 'select_topic'))
 async def celebrity_callbacks(callback: CallbackQuery, callback_data: QuizData, bot: Bot, state: FSMContext):
-    photo_path = os.path.join('resources', 'images', 'quiz.jpg')
-    photo = FSInputFile(photo_path)
-    topic = callback_data.topic
+    photo = BotPhoto('quiz').photo
     await callback.answer(
         text=f'Вы выбрали тему {callback_data.topic_name}!',
     )
-    init_message = gpt_client.init_message('quiz')['messages']
-    user_topic = {
-        'role': 'user',
-        'content': callback_data.topic,
-    }
-    data = {
-        'messages': [
-            init_message,
-            user_topic,
-        ]
-    }
-    response = await gpt_client.talk_request(data['messages'])
+    request_message = GPTMessage('quiz')
+    request_message.update(GPTRole.USER, callback_data.topic)
+    response = await gpt_client.request(request_message)
     await bot.send_photo(
         chat_id=callback.from_user.id,
         photo=photo,
         caption=response,
     )
+    await state.set_state(Quiz.wait_for_answer)
+    await state.set_data({'messages': request_message, 'photo': photo, 'score': 0, 'callback': callback_data})
 
-    # await state.set_state(CelebrityTalk.wait_for_answer)
-    # await state.set_data({'messages': [init_message[0]], 'photo': photo})
+
+@callback_router.callback_query(QuizData.filter(F.button == 'next_question'))
+async def quiz_next_question(callback: CallbackQuery, callback_data: QuizData, state: FSMContext):
+    data: dict[str, GPTMessage | str | QuizData] = await state.get_data()
+    data['messages'].update(GPTRole.USER, 'quiz_more')
+    response = await gpt_client.request(data['messages'])
+    data['messages'].update(GPTRole.ASSISTANT, response)
+    await callback.bot.send_photo(
+        chat_id=callback.from_user.id,
+        photo=data['photo'],
+        caption=response,
+    )
+    await callback.answer(
+        text=f'Продолжаем тему {data['callback'].topic_name}'
+    )
+    await state.update_data(data)
