@@ -1,7 +1,74 @@
+from aiogram.types import FSInputFile
+
+from enum import Enum
+
 import os
 
 import openai
 import httpx
+
+
+class BotPath(Enum):
+    RESOURCES = 'resources'
+    IMAGES = os.path.join(RESOURCES, 'images')
+    MESSAGES = os.path.join(RESOURCES, 'messages')
+    PROMPTS = os.path.join(RESOURCES, 'prompts')
+
+
+class GPTRole(Enum):
+    SYSTEM = 'system'
+    USER = 'user'
+    ASSISTANT = 'assistant'
+
+
+class BotPhoto:
+
+    def __init__(self, file_name: str):
+        self._file_name = file_name + '.jpg'
+
+    @property
+    def photo(self) -> FSInputFile:
+        photo_path = os.path.join(BotPath.IMAGES.value, self._file_name)
+        return FSInputFile(photo_path)
+
+
+class BotText:
+    def __init__(self, file_name: str):
+        self._file_name = file_name + '.txt'
+
+    @property
+    def text(self) -> str:
+        text_path = os.path.join(BotPath.MESSAGES.value, self._file_name)
+        with open(text_path, 'r', encoding='UTF-8') as file:
+            data = file.read()
+        return data
+
+
+class GPTMessage:
+
+    def __init__(self, prompt: str):
+        self.prompt_file = prompt + '.txt'
+        self.message_list = self._init_message()
+
+    def _init_message(self) -> list[dict[str, str]]:
+        message = {
+            'role': GPTRole.SYSTEM.value,
+            'content': self._load_prompt(),
+        }
+        return [message]
+
+    def _load_prompt(self) -> str:
+        prompt_path = os.path.join(BotPath.PROMPTS.value, self.prompt_file)
+        with open(prompt_path, 'r', encoding='UTF-8') as file:
+            prompt = file.read()
+        return prompt
+
+    def update(self, role: GPTRole, message: str):
+        message = {
+            'role': role.value,
+            'content': message,
+        }
+        self.message_list.append(message)
 
 
 class ChatGPT:
@@ -12,10 +79,11 @@ class ChatGPT:
             cls._instance = super().__new__(cls)
         return cls._instance
 
-    def __init__(self):
+    def __init__(self, model: str = 'gpt-3.5-turbo'):
         self._gpt_token = os.getenv('GPT_TOKEN')
         self._proxy = os.getenv('PROXY')
         self._client = self._create_client()
+        self._model = model
 
     def _create_client(self):
         gpt_client = openai.AsyncOpenAI(
@@ -26,46 +94,9 @@ class ChatGPT:
         )
         return gpt_client
 
-    @staticmethod
-    def _load_prompt(prompt_name: str) -> str:
-        prompt_path = os.path.join('resources', 'prompts', f'{prompt_name}.txt')
-        with open(prompt_path, 'r', encoding='UTF-8') as file:
-            prompt = file.read()
-        return prompt
-
-    def init_message(self, prompt_name: str) -> dict[str, str | list[dict[str, str]]]:
-        return {'messages': [
-            {
-                'role': 'system',
-                'content': self._load_prompt(prompt_name),
-            }
-        ],
-            'model': 'gpt-3.5-turbo',
-        }
-
-    async def random_request(self) -> str:
+    async def request(self, messages: GPTMessage) -> str:
         response = await self._client.chat.completions.create(
-            **self.init_message('random'),
+            messages=messages.message_list,
+            model=self._model,
         )
         return response.choices[0].message.content
-
-    async def gpt_request(self, request_text: str) -> str:
-        key_args = self.init_message('gpt')
-        key_args['messages'].append(
-            {
-                'role': 'user',
-                'content': request_text,
-            }
-        )
-        response = await self._client.chat.completions.create(
-            **key_args,
-        )
-        return response.choices[0].message.content
-
-    async def talk_request(self, messages: list[dict[str, str]]):
-        response = await self._client.chat.completions.create(
-            messages=messages,
-            model='gpt-3.5-turbo'
-        )
-        return response.choices[0].message.content
-

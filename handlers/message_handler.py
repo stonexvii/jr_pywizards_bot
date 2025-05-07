@@ -1,11 +1,13 @@
-from aiogram import Router, F
+from aiogram import Bot, Router, F
 from aiogram.types import Message
 from aiogram.fsm.context import FSMContext
-from .handlers_state import CelebrityTalk
+from .handlers_state import CelebrityTalk, ChatGPTRequests
 
 from classes import gpt_client
+from classes.chat_gpt import GPTMessage, GPTRole, BotPhoto
 from keyboards import kb_end_talk
 from .command import com_start
+from misc import bot_thinking
 
 message_router = Router()
 
@@ -16,23 +18,30 @@ async def end_talk_handler(message: Message, state: FSMContext):
     await com_start(message)
 
 
+@message_router.message(ChatGPTRequests.wait_for_request)
+async def wait_for_gpt_handler(message: Message, bot: Bot, state: FSMContext):
+    await bot_thinking(message)
+    gpt_message = GPTMessage('gpt')
+    gpt_message.update(GPTRole.USER, message.text)
+    gpt_response = await gpt_client.request(gpt_message)
+    photo = BotPhoto('gpt').photo
+    await message.answer_photo(
+        photo=photo,
+        caption=gpt_response,
+    )
+    await state.clear()
+
+
 @message_router.message(CelebrityTalk.wait_for_answer)
-async def talk_handler(message: Message, state: FSMContext):
-    data = await state.get_data()
-    message_from_user = {
-        'role': 'user',
-        'content': message.text,
-    }
-    data['messages'].append(message_from_user)
-    response = await gpt_client.talk_request(data['messages'])
+async def talk_handler(message: Message, bot: Bot, state: FSMContext):
+    await bot_thinking(message)
+    data: dict[str, GPTMessage | str] = await state.get_data()
+    data['messages'].update(GPTRole.USER, message.text)
+    response = await gpt_client.request(data['messages'])
     await message.answer_photo(
         photo=data['photo'],
         caption=response,
         reply_markup=kb_end_talk(),
     )
-    message_from_celebrity = {
-        'role': 'assistant',
-        'content': response,
-    }
-    data['messages'].append(message_from_celebrity)
+    data['messages'].update(GPTRole.ASSISTANT, response)
     await state.update_data(data)

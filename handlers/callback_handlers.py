@@ -4,6 +4,7 @@ from aiogram.fsm.context import FSMContext
 import os
 
 from classes import gpt_client
+from classes.chat_gpt import BotPhoto, BotPath, GPTMessage
 from keyboards.callback_data import CelebrityData, QuizData
 from .handlers_state import CelebrityTalk
 
@@ -12,11 +13,10 @@ callback_router = Router()
 
 @callback_router.callback_query(CelebrityData.filter(F.button == 'select_celebrity'))
 async def celebrity_callbacks(callback: CallbackQuery, callback_data: CelebrityData, bot: Bot, state: FSMContext):
-    photo_path = os.path.join('resources', 'images', callback_data.file_name + '.jpg')
+    photo = BotPhoto(callback_data.file_name).photo
     file_name = callback_data.file_name
-    with open(os.path.join('resources', 'prompts', file_name + '.txt'), 'r', encoding='UTF-8') as file:
+    with open(os.path.join(BotPath.PROMPTS.value, file_name + '.txt'), 'r', encoding='UTF-8') as file:
         celebrity_name = file.readline().split(', ')[0][5:]
-    photo = FSInputFile(photo_path)
     await callback.answer(
         text=f'С тобой говорит {celebrity_name}',
     )
@@ -25,10 +25,9 @@ async def celebrity_callbacks(callback: CallbackQuery, callback_data: CelebrityD
         photo=photo,
         caption='Задайте свой вопрос:',
     )
-    init_message = gpt_client.init_message(file_name)['messages']
-
+    request_message = GPTMessage(file_name)
     await state.set_state(CelebrityTalk.wait_for_answer)
-    await state.set_data({'messages': [init_message[0]], 'photo': photo})
+    await state.set_data({'messages': request_message, 'photo': photo})
 
 
 @callback_router.callback_query(QuizData.filter(F.button == 'select_topic'))

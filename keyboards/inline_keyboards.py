@@ -3,6 +3,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 import os
 from collections import namedtuple
 
+from classes.chat_gpt import BotPath
 from .callback_data import CelebrityData, QuizData
 
 Button = namedtuple('Button', ['button_text', 'button_callback'])
@@ -10,11 +11,11 @@ Button = namedtuple('Button', ['button_text', 'button_callback'])
 
 def ikb_celebrity():
     keyboard = InlineKeyboardBuilder()
-    path_celebrity = os.path.join('resources', 'prompts')
+    path_celebrity = BotPath.PROMPTS.value
     celebrity_list = [file for file in os.listdir(path_celebrity) if file.startswith('talk_')]
     buttons = []
     for file in celebrity_list:
-        with open(os.path.join('resources', 'prompts', file), 'r', encoding='UTF-8') as txt_file:
+        with open(os.path.join(path_celebrity, file), 'r', encoding='UTF-8') as txt_file:
             buttons.append((txt_file.readline().split(', ')[0][5:], file.split('.')[0]))
     for button_name, file_name in buttons:
         keyboard.button(
