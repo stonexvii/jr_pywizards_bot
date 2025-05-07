@@ -43,6 +43,7 @@ class ChatGPT:
             'model': 'gpt-3.5-turbo',
         }
 
+
     async def random_request(self) -> str:
         response = await self._client.chat.completions.create(
             **self._init_message('random'),
