@@ -9,7 +9,7 @@ from .handlers_state import ChatGPTRequests
 
 import os
 
-from keyboards import kb_reply, ikb_celebrity
+from keyboards import kb_reply, ikb_celebrity, ikb_quiz
 
 command_router = Router()
 
@@ -105,4 +105,22 @@ async def com_talk(message: Message, bot: Bot):
         photo=photo,
         caption=message_text,
         reply_markup=ikb_celebrity(),
+    )
+
+
+@command_router.message(Command('quiz'))
+async def com_quiz(message: Message, bot: Bot):
+    await bot.send_chat_action(
+        chat_id=message.from_user.id,
+        action=ChatAction.TYPING,
+    )
+    photo_path = os.path.join('resources', 'images', 'quiz.jpg')
+    msg_path = os.path.join('resources', 'messages', 'quiz.txt')
+    photo = FSInputFile(photo_path)
+    with open(msg_path, 'r', encoding='UTF-8') as file:
+        message_text = file.read()
+    await message.answer_photo(
+        photo=photo,
+        caption=message_text,
+        reply_markup=ikb_quiz(),
     )

@@ -33,7 +33,7 @@ class ChatGPT:
             prompt = file.read()
         return prompt
 
-    def _init_message(self, prompt_name: str) -> dict[str, str | list[dict[str, str]]]:
+    def init_message(self, prompt_name: str) -> dict[str, str | list[dict[str, str]]]:
         return {'messages': [
             {
                 'role': 'system',
@@ -43,15 +43,14 @@ class ChatGPT:
             'model': 'gpt-3.5-turbo',
         }
 
-
     async def random_request(self) -> str:
         response = await self._client.chat.completions.create(
-            **self._init_message('random'),
+            **self.init_message('random'),
         )
         return response.choices[0].message.content
 
     async def gpt_request(self, request_text: str) -> str:
-        key_args = self._init_message('gpt')
+        key_args = self.init_message('gpt')
         key_args['messages'].append(
             {
                 'role': 'user',
@@ -62,3 +61,11 @@ class ChatGPT:
             **key_args,
         )
         return response.choices[0].message.content
+
+    async def talk_request(self, messages: list[dict[str, str]]):
+        response = await self._client.chat.completions.create(
+            messages=messages,
+            model='gpt-3.5-turbo'
+        )
+        return response.choices[0].message.content
+

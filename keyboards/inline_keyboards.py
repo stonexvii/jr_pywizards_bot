@@ -1,8 +1,11 @@
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 import os
+from collections import namedtuple
 
-from .callback_data import CelebrityData
+from .callback_data import CelebrityData, QuizData
+
+Button = namedtuple('Button', ['button_text', 'button_callback'])
 
 
 def ikb_celebrity():
@@ -20,6 +23,28 @@ def ikb_celebrity():
                 button='select_celebrity',
                 file_name=file_name,
             ),
+        )
+    keyboard.adjust(1)
+    return keyboard.as_markup()
+
+
+def ikb_quiz():
+    keyboard = InlineKeyboardBuilder()
+    buttons = [
+        Button('Язык Python', 'quiz_prog'),
+        Button('Математика', 'quiz_math'),
+        Button('Биология', 'quiz_biology'),
+
+    ]
+    for button in buttons:
+        keyboard.button(
+            text=button.button_text,
+            callback_data=QuizData(
+                button='select_topic',
+                topic=button.button_callback,
+                topic_name=button.button_text,
+            )
+
         )
     keyboard.adjust(1)
     return keyboard.as_markup()
