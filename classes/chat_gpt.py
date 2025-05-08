@@ -1,53 +1,16 @@
-from aiogram.types import FSInputFile
-
-from enum import Enum
-
-import os
-
 import openai
 import httpx
 
+import os
 
-class BotPath(Enum):
-    RESOURCES = 'resources'
-    IMAGES = os.path.join(RESOURCES, 'images')
-    MESSAGES = os.path.join(RESOURCES, 'messages')
-    PROMPTS = os.path.join(RESOURCES, 'prompts')
-
-
-class GPTRole(Enum):
-    SYSTEM = 'system'
-    USER = 'user'
-    ASSISTANT = 'assistant'
-
-
-class BotPhoto:
-
-    def __init__(self, file_name: str):
-        self._file_name = file_name + '.jpg'
-
-    @property
-    def photo(self) -> FSInputFile:
-        photo_path = os.path.join(BotPath.IMAGES.value, self._file_name)
-        return FSInputFile(photo_path)
-
-
-class BotText:
-    def __init__(self, file_name: str):
-        self._file_name = file_name + '.txt'
-
-    @property
-    def text(self) -> str:
-        text_path = os.path.join(BotPath.MESSAGES.value, self._file_name)
-        with open(text_path, 'r', encoding='UTF-8') as file:
-            data = file.read()
-        return data
+from .enums import GPTRole, Extensions
+from .resource import ResourcePath
 
 
 class GPTMessage:
 
     def __init__(self, prompt: str):
-        self.prompt_file = prompt + '.txt'
+        self.prompt_file = prompt + Extensions.TXT.value
         self.message_list = self._init_message()
 
     def _init_message(self) -> list[dict[str, str]]:
@@ -58,7 +21,7 @@ class GPTMessage:
         return [message]
 
     def _load_prompt(self) -> str:
-        prompt_path = os.path.join(BotPath.PROMPTS.value, self.prompt_file)
+        prompt_path = os.path.join(ResourcePath.PROMPTS.value, self.prompt_file)
         with open(prompt_path, 'r', encoding='UTF-8') as file:
             prompt = file.read()
         return prompt
